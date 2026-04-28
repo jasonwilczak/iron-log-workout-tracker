@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>IRON LOG — Marcy 150</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Iron Log">
+<meta name="theme-color" content="#0f0f0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #181818;
+    --surface2: #222222;
+    --border: #2a2a2a;
+    --accent: #e8ff00;
+    --accent2: #ff4d00;
+    --text: #f0f0f0;
+    --muted: #666;
+    --push: #ff4d00;
+    --pull: #00b4ff;
+    --legs: #00e87a;
+    --pt: #c77dff;
+    --rest: #444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .logo span { color: var(--muted); font-size: 14px; display: block; letter-spacing: 2px; }
+  .today-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.4;
+  }
+  .today-badge strong { color: var(--text); display: block; font-size: 12px; }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex: 1;
+    padding: 14px 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* MAIN */
+  main { padding: 0 0 100px; }
+
+  /* SECTION */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* TODAY CARD */
+  .today-hero {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .workout-type-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .workout-type-label.push { color: var(--push); }
+  .workout-type-label.pull { color: var(--pull); }
+  .workout-type-label.legs { color: var(--legs); }
+  .workout-type-label.rest { color: var(--rest); }
+  .workout-type-label.pt { color: var(--pt); }
+  .workout-subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .session-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .btn-start {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .btn-start:active { transform: scale(0.97); }
+  .btn-start:disabled { opacity: 0.4; cursor: default; }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--muted); }
+  .timer-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    display: none;
+  }
+  .timer-display.running { display: block; }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    margin: 16px 20px;
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 20px 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .progress-label span { color: var(--text); }
+
+  /* EXERCISE CARDS */
+  .exercises-list { padding: 0 16px; }
+  .exercise-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .exercise-card.completed { border-color: #2a3a1a; }
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    gap: 12px;
+  }
+  .exercise-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--muted);
+    min-width: 28px;
+    line-height: 1;
+  }
+  .exercise-info { flex: 1 }
+  .exercise-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+  .exercise-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .exercise-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .exercise-card.completed .exercise-check {
+    background: var(--legs);
+    border-color: var(--legs);
+  }
+  .exercise-card.completed .exercise-num { color: var(--legs); }
+
+  .exercise-body {
+    border-top: 1px solid var(--border);
+    padding: 14px 16px;
+    display: none;
+  }
+  .exercise-body.open { display: block; }
+
+  /* SETS TABLE */
+  .sets-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 40px;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 0 4px;
+  }
+  .set-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 40px;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .set-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .set-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    width: 100%;
+    text-align: center;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .set-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .set-done-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .set-done-btn.done {
+    background: var(--legs);
+    border-color: var(--legs);
+    color: #000;
+  }
+
+  .exercise-note {
+    margin-top: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--border);
+  }
+
+  .mark-done-btn {
+    width: 100%;
+    margin-top: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .mark-done-btn:hover { border-color: var(--legs); color: var(--legs); }
+  .exercise-card.completed .mark-done-btn {
+    color: var(--legs);
+    border-color: var(--legs);
+  }
+
+  /* HISTORY SECTION */
+  .history-wrap { padding: 20px 16px; }
+  .history-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .history-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .history-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    padding: 14px 16px;
+  }
+  .history-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .history-day-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+  }
+  .history-day-label.push { color: var(--push); }
+  .history-day-label.pull { color: var(--pull); }
+  .history-day-label.legs { color: var(--legs); }
+  .history-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+  }
+  .history-exercises {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .history-exercises strong { color: var(--text); }
+  .no-history {
+    text-align: center;
+    padding: 60px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .no-history div {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    color: var(--surface2);
+    margin-bottom: 12px;
+  }
+
+  /* STATS */
+  .stats-wrap { padding: 20px 16px; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 1px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .stat-card.full { grid-column: 1 / -1; }
+  .streak-bar {
+    display: flex;
+    gap: 4px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .streak-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .streak-dot.done { background: var(--legs); border-color: var(--legs); }
+  .streak-dot.push { background: var(--push); border-color: var(--push); }
+  .streak-dot.pull { background: var(--pull); border-color: var(--pull); }
+
+  /* REST DAY */
+  .rest-day-card {
+    margin: 24px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .rest-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .rest-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .rest-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .rest-next {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .rest-next strong { color: var(--accent); }
+
+  /* RESET BTN */
+  .danger-zone {
+    margin: 24px 16px 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-danger {
+    background: none;
+    border: 1px solid #3a1a1a;
+    color: #664444;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .btn-danger:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* DAY NAVIGATOR */
+  .day-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .day-nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .day-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .day-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .day-nav-center { text-align: center; }
+  .day-nav-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .day-nav-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .day-nav-sub.today-pill {
+    color: var(--accent);
+    background: rgba(232,255,0,0.08);
+    border-radius: 10px;
+    padding: 1px 7px;
+  }
+
+  /* PT CARD */
+  .pt-track-card {
+    margin: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .pt-track-item {
+    display: flex;
+    align-items: center;
+    padding: 16px 18px;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pt-track-item:last-child { border-bottom: none; }
+  .pt-track-item:hover { background: var(--surface2); }
+  .pt-track-item.done { background: rgba(199,125,255,0.05); }
+  .pt-icon { font-size: 26px; flex-shrink: 0; }
+  .pt-info { flex: 1; }
+  .pt-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .pt-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .pt-check {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .pt-track-item.done .pt-check { background: var(--pt); border-color: var(--pt); color: #000; }
+  .pt-notes-section {
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .pt-notes-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .pt-notes-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    resize: none;
+    min-height: 60px;
+    line-height: 1.5;
+  }
+  .pt-notes-input:focus { outline: none; border-color: var(--pt); }
+
+  /* History PT color */
+  .history-day-label.pt { color: var(--pt); }
+  /* Stats PT */
+  .stat-card .pt-val { color: var(--pt); }
+
+  /* VIDEO DEMO */
+  .video-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 9px 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .video-toggle-btn:hover { border-color: #ff0000; color: #ff4444; }
+  .video-toggle-btn .vicon { font-size: 15px; flex-shrink: 0; }
+  .video-toggle-btn .vchev { margin-left: auto; transition: transform 0.2s; }
+  .video-toggle-btn.open .vchev { transform: rotate(180deg); }
+  .video-panel {
+    display: none;
+    margin-top: 8px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .video-panel.open { display: block; }
+  .video-iframe-wrap {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    background: #000;
+  }
+  .video-iframe-wrap iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: none;
+  }
+  .video-yt-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #111;
+    color: var(--muted);
+    text-decoration: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    border-top: 1px solid var(--border);
+  }
+  .video-yt-link .yt-badge {
+    background: #ff0000;
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    padding: 12px 24px;
+    border-radius: 30px;
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* BOTTOM SAFE AREA */
+  .safe-bottom { height: env(safe-area-inset-bottom, 20px); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">IRON LOG<span>MARCY 150 — MWF</span></div>
+  <div class="today-badge" id="todayBadge">
+    <strong id="dayName">—</strong>
+    <span id="dateStr">—</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="showTab('today')">TODAY</button>
+  <button class="tab-btn" onclick="showTab('history')">HISTORY</button>
+  <button class="tab-btn" onclick="showTab('stats')">STATS</button>
+</nav>
+
+<main>
+  <!-- TODAY -->
+  <div class="section active" id="tab-today">
+    <div class="day-nav">
+      <button class="day-nav-btn" id="prevDayBtn" onclick="shiftDay(-1)">‹</button>
+      <div class="day-nav-center">
+        <div class="day-nav-label" id="navDayLabel">—</div>
+        <div class="day-nav-sub" id="navDaySub">—</div>
+      </div>
+      <button class="day-nav-btn" id="nextDayBtn" onclick="shiftDay(1)">›</button>
+    </div>
+    <div id="todayContent"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section" id="tab-history">
+    <div class="history-wrap">
+      <div class="history-title">SESSION LOG</div>
+      <div class="history-sub">YOUR COMPLETED WORKOUTS</div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section" id="tab-stats">
+    <div class="stats-wrap">
+      <div class="history-title">METRICS</div>
+      <div class="history-sub">HOW HARD YOU'VE BEEN GRINDING</div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="danger-zone">
+        <button class="btn-danger" onclick="clearAllData()">⚠ RESET ALL DATA</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── WORKOUT DATA ──────────────────────────────────────────────────────────────
+const WORKOUTS = {
+  push: {
+    label: 'PUSH',
+    sub: 'CHEST · SHOULDERS · TRICEPS',
+    type: 'push',
+    exercises: [
+      { name: 'Chest Press', station: 'Dual-action press arms', sets: 3, reps: '10–12', note: 'Control the eccentric — pretend you owe the bar money.', video: 'cable chest press home gym tutorial form' },
+      { name: 'Pec Fly (Butterfly)', station: 'Press arms wide position', sets: 3, reps: '12', note: 'Full stretch at the open position.', video: 'cable pec fly butterfly machine exercise tutorial' },
+      { name: 'Shoulder Press', station: 'Press arms upright', sets: 3, reps: '10', note: 'Seated, core tight, don\'t arch your back into oblivion.', video: 'cable machine shoulder press exercise form tutorial' },
+      { name: 'Tricep Pushdown', station: 'High pulley + short bar', sets: 3, reps: '12–15', note: 'Elbows pinned to sides. No chicken wings.', video: 'cable tricep pushdown proper form tutorial' },
+      { name: 'Overhead Tricep Extension', station: 'High pulley (face away)', sets: 3, reps: '12', note: 'Full extension overhead, slow on the way back.', video: 'overhead cable tricep extension form tutorial' },
+    ]
+  },
+  pull: {
+    label: 'PULL',
+    sub: 'BACK · BICEPS',
+    type: 'pull',
+    exercises: [
+      { name: 'Lat Pulldown', station: 'Lat bar + upper pulley', sets: 3, reps: '10–12', note: 'Pull to chest, not behind the neck. Your spine will thank you.', video: 'lat pulldown proper form tutorial home gym' },
+      { name: 'Seated Cable Row', station: 'Low pulley', sets: 3, reps: '10–12', note: 'Squeeze shoulder blades together at the peak.', video: 'seated cable row proper form tutorial' },
+      { name: 'Straight-Arm Pulldown', station: 'High pulley', sets: 3, reps: '12', note: 'Arms nearly locked, hinge at the shoulder.', video: 'straight arm cable pulldown lat exercise form' },
+      { name: 'Preacher Curl', station: 'Preacher curl pad', sets: 3, reps: '10–12', note: 'Don\'t rock — the pad is there to keep you honest.', video: 'preacher curl proper form cable machine tutorial' },
+      { name: 'Standing Cable Curl', station: 'Low pulley', sets: 3, reps: '12', note: 'Supinate at the top. Make that bicep peak earn its paycheck.', video: 'standing cable bicep curl form tutorial' },
+    ]
+  },
+  legs: {
+    label: 'LEGS',
+    sub: 'LEGS · CORE',
+    type: 'legs',
+    exercises: [
+      { name: 'Leg Extension', station: 'Leg developer', sets: 3, reps: '12–15', note: 'Full extension, hold 1 second. Quads will have opinions.', video: 'leg extension machine proper form tutorial' },
+      { name: 'Leg Curl', station: 'Leg developer (prone)', sets: 3, reps: '12', note: 'Full range of motion — no half reps here.', video: 'leg curl machine proper form tutorial' },
+      { name: 'Cable Squat', station: 'Low pulley (hold handle)', sets: 3, reps: '12', note: 'Sit back, not down. Heels stay planted.', video: 'cable squat low pulley exercise form tutorial' },
+      { name: 'Hip Abduction', station: 'Low pulley + ankle', sets: 3, reps: '12 each', note: 'Slow and controlled each direction.', video: 'cable hip abduction ankle attachment exercise form' },
+      { name: 'Ab Crunch', station: 'Upper pulley + ab attach', sets: 3, reps: '15–20', note: 'Crunch the abs, not your neck.', video: 'cable ab crunch rope attachment proper form' },
+      { name: 'Oblique Twist', station: 'Low pulley', sets: 3, reps: '12 each', note: 'Rotate from the core, not the arms.', video: 'cable oblique twist rotation core exercise form' },
+    ]
+  },
+  pt: {
+    label: 'PT + WALK',
+    sub: 'PHYSICAL THERAPY · WALKING',
+    type: 'pt',
+    activities: [
+      { name: 'Physical Therapy', icon: '🩺', duration: '20 min', key: 'pt' },
+      { name: 'Walk', icon: '🚶', duration: '20 min', key: 'walk' },
+    ]
+  }
+};
+
+const SCHEDULE = ['rest', 'push', 'pt', 'pull', 'pt', 'legs', 'rest']; // Sun–Sat
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// ─── STATE ─────────────────────────────────────────────────────────────────────
+let sessionActive = false;
+let sessionStart = null;
+let timerInterval = null;
+let sessionData = {};
+let dayOffset = 0; // 0 = today, +/- = future/past days
+
+function getStorage() {
+  try { return JSON.parse(localStorage.getItem('ironlog') || '{}'); } catch { return {}; }
+}
+function saveStorage(data) {
+  try { localStorage.setItem('ironlog', JSON.stringify(data)); } catch {}
+}
+
+function getViewedDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  return d;
+}
+
+function getViewedWorkout() {
+  return SCHEDULE[getViewedDate().getDay()];
+}
+
+function getDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getTodayKey() { return getDateKey(new Date()); }
+function getViewedKey() { return getDateKey(getViewedDate()); }
+
+// ─── TAB NAVIGATION ────────────────────────────────────────────────────────────
+function shiftDay(delta) {
+  // Clamp: don't go more than 6 days ahead or 30 days back
+  if (dayOffset + delta > 6 || dayOffset + delta < -30) return;
+  dayOffset += delta;
+  // Reset session state when navigating away from today
+  if (dayOffset !== 0) {
+    sessionActive = false;
+    clearInterval(timerInterval);
+  }
+  updateHeader();
+  renderToday();
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'history') renderHistory();
+  if (tab === 'stats') renderStats();
+}
+
+// ─── HEADER DATE ──────────────────────────────────────────────────────────────
+function updateHeader() {
+  const now = new Date();
+  document.getElementById('dayName').textContent = DAY_NAMES[now.getDay()].toUpperCase();
+  document.getElementById('dateStr').textContent = now.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+
+  const viewed = getViewedDate();
+  const navLabel = document.getElementById('navDayLabel');
+  const navSub = document.getElementById('navDaySub');
+  const prevBtn = document.getElementById('prevDayBtn');
+  const nextBtn = document.getElementById('nextDayBtn');
+  if (navLabel) navLabel.textContent = DAY_NAMES[viewed.getDay()].toUpperCase();
+  if (navSub) {
+    if (dayOffset === 0) {
+      navSub.textContent = 'TODAY';
+      navSub.className = 'day-nav-sub today-pill';
+    } else if (dayOffset === 1) {
+      navSub.textContent = 'TOMORROW';
+      navSub.className = 'day-nav-sub';
+    } else if (dayOffset === -1) {
+      navSub.textContent = 'YESTERDAY';
+      navSub.className = 'day-nav-sub';
+    } else if (dayOffset > 1) {
+      navSub.textContent = 'IN ' + dayOffset + ' DAYS';
+      navSub.className = 'day-nav-sub';
+    } else {
+      navSub.textContent = Math.abs(dayOffset) + ' DAYS AGO';
+      navSub.className = 'day-nav-sub';
+    }
+  }
+  if (prevBtn) prevBtn.disabled = dayOffset <= -30;
+  if (nextBtn) nextBtn.disabled = dayOffset >= 6;
+}
+
+// ─── RENDER TODAY ─────────────────────────────────────────────────────────────
+function renderToday() {
+  const type = getViewedWorkout();
+  const container = document.getElementById('todayContent');
+  const isToday = dayOffset === 0;
+  const isFuture = dayOffset > 0;
+
+  if (type === 'rest') {
+    // Find next non-rest day
+    let nextLabel = null;
+    for (let i = 1; i <= 7; i++) {
+      const t = SCHEDULE[(getViewedDate().getDay() + i) % 7];
+      if (t !== 'rest') { nextLabel = WORKOUTS[t]; break; }
+    }
+    container.innerHTML = `
+      <div class="today-hero">
+        <div class="workout-type-label rest">REST DAY</div>
+        <div class="workout-subtitle">RECOVERY IS PART OF THE PROGRAM</div>
+      </div>
+      <div class="rest-day-card">
+        <div class="rest-icon">🛋️</div>
+        <div class="rest-title">${isFuture ? 'SCHEDULED REST' : 'EARNED IT'}</div>
+        <div class="rest-text">Active recovery: stretch, walk, hydrate.<br>Your muscles are rebuilding.<br>Let them.</div>
+        ${nextLabel ? `<div class="rest-next">Next up: <strong>${nextLabel.label}</strong> — ${nextLabel.sub}</div>` : ''}
+      </div>`;
+    return;
+  }
+
+  if (type === 'pt') {
+    renderPTDay(isToday, isFuture);
+    return;
+  }
+
+  const workout = WORKOUTS[type];
+  const stored = getStorage();
+  const viewedKey = getViewedKey();
+  const daySaved = stored[viewedKey] || {};
+
+  sessionData = {};
+  workout.exercises.forEach((ex, i) => {
+    if (daySaved[i]) {
+      sessionData[i] = daySaved[i];
+    } else {
+      sessionData[i] = {
+        sets: Array.from({length: ex.sets}, () => ({weight: '', reps: '', done: false})),
+        completed: false
+      };
+    }
+  });
+
+  const completedCount = workout.exercises.filter((_,i) => sessionData[i]?.completed).length;
+  const pct = Math.round((completedCount / workout.exercises.length) * 100);
+  const futureNote = isFuture ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--pt);padding:8px 20px;background:rgba(199,125,255,0.06);border-bottom:1px solid var(--border)">👁 PREVIEW MODE — Viewing future session</div>` : '';
+
+  container.innerHTML = `
+    ${futureNote}
+    <div class="today-hero">
+      <div class="workout-type-label ${type}">${workout.label}</div>
+      <div class="workout-subtitle">${workout.sub}</div>
+      ${isToday ? `<div class="session-controls">
+        <button class="btn-start" id="startBtn" onclick="toggleSession()">${sessionActive ? 'PAUSE' : (completedCount > 0 ? 'RESUME' : 'START')}</button>
+        <div class="timer-display ${sessionActive ? 'running' : ''}" id="timerDisplay">${sessionActive ? formatTime(Date.now() - sessionStart) : '00:00'}</div>
+      </div>` : ''}
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" style="width:${pct}%"></div>
+    </div>
+    <div class="progress-label">
+      <span>PROGRESS</span>
+      <span>${completedCount}/${workout.exercises.length} EXERCISES <span>· ${pct}%</span></span>
+    </div>
+    <div class="exercises-list" id="exercisesList"></div>`;
+
+  renderExercises(workout);
+}
+
+function renderPTDay(isToday, isFuture) {
+  const container = document.getElementById('todayContent');
+  const stored = getStorage();
+  const viewedKey = getViewedKey();
+  const ptSaved = stored[viewedKey + '_pt'] || { pt: false, walk: false, notes: '' };
+  const w = WORKOUTS.pt;
+  const bothDone = ptSaved.pt && ptSaved.walk;
+  const donePct = [ptSaved.pt, ptSaved.walk].filter(Boolean).length * 50;
+  const futureNote = isFuture ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--pt);padding:8px 20px;background:rgba(199,125,255,0.06);border-bottom:1px solid var(--border)">👁 PREVIEW MODE — Viewing future session</div>` : '';
+
+  container.innerHTML = `
+    ${futureNote}
+    <div class="today-hero">
+      <div class="workout-type-label pt">${w.label}</div>
+      <div class="workout-subtitle">${w.sub}</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" style="width:${donePct}%;background:var(--pt)"></div>
+    </div>
+    <div class="progress-label">
+      <span>PROGRESS</span>
+      <span>${[ptSaved.pt, ptSaved.walk].filter(Boolean).length}/2 ACTIVITIES · ${donePct}%</span>
+    </div>
+    <div class="pt-track-card">
+      ${w.activities.map(a => `
+        <div class="pt-track-item ${ptSaved[a.key] ? 'done' : ''}" onclick="${isToday ? `togglePT('${a.key}')` : ''}">
+          <div class="pt-icon">${a.icon}</div>
+          <div class="pt-info">
+            <div class="pt-name">${a.name}</div>
+            <div class="pt-meta">${a.duration}${ptSaved[a.key] ? ' · DONE' : ''}</div>
+          </div>
+          <div class="pt-check">${ptSaved[a.key] ? '✓' : ''}</div>
+        </div>`).join('')}
+      <div class="pt-notes-section">
+        <div class="pt-notes-label">SESSION NOTES</div>
+        <textarea class="pt-notes-input" id="ptNotesInput" placeholder="How'd it go? Pain levels, exercises, progress..."
+          ${!isToday ? 'readonly' : ''}
+          onchange="savePTNotes(this.value)">${ptSaved.notes || ''}</textarea>
+      </div>
+    </div>`;
+
+  if (bothDone && isToday) {
+    const stored2 = getStorage();
+    if (!stored2.sessions) stored2.sessions = [];
+    if (!stored2.sessions.find(s => s.date === viewedKey && s.type === 'pt')) {
+      stored2.sessions.push({ date: viewedKey, type: 'pt', duration: 40, exercises: [
+        { name: 'Physical Therapy', sets: [{done: true}] },
+        { name: 'Walk', sets: [{done: true}] }
+      ]});
+      saveStorage(stored2);
+    }
+  }
+}
+
+function togglePT(key) {
+  const stored = getStorage();
+  const viewedKey = getViewedKey();
+  const ptKey = viewedKey + '_pt';
+  if (!stored[ptKey]) stored[ptKey] = { pt: false, walk: false, notes: '' };
+  stored[ptKey][key] = !stored[ptKey][key];
+  saveStorage(stored);
+  renderPTDay(true, false);
+  showToast(stored[ptKey][key] ? '✓ ' + key.toUpperCase() + ' DONE' : 'REOPENED');
+}
+
+function savePTNotes(val) {
+  const stored = getStorage();
+  const viewedKey = getViewedKey();
+  const ptKey = viewedKey + '_pt';
+  if (!stored[ptKey]) stored[ptKey] = { pt: false, walk: false, notes: '' };
+  stored[ptKey].notes = val;
+  saveStorage(stored);
+}
+
+function renderExercises(workout) {
+  const list = document.getElementById('exercisesList');
+  if (!list) return;
+  list.innerHTML = '';
+  workout.exercises.forEach((ex, i) => {
+    const sd = sessionData[i];
+    const card = document.createElement('div');
+    card.className = `exercise-card ${sd.completed ? 'completed' : ''}`;
+    card.id = `ex-card-${i}`;
+
+    const setsHtml = sd.sets.map((s, si) => `
+      <div class="set-row" id="set-${i}-${si}">
+        <div class="set-num">${si+1}</div>
+        <input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${s.weight}"
+          onchange="updateSet(${i},${si},'weight',this.value)">
+        <input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${s.reps}"
+          onchange="updateSet(${i},${si},'reps',this.value)">
+        <button class="set-done-btn ${s.done ? 'done' : ''}" onclick="toggleSetDone(${i},${si})">
+          ${s.done ? '✓' : '○'}
+        </button>
+      </div>`).join('');
+
+    card.innerHTML = `
+      <div class="exercise-header" onclick="toggleExercise(${i})">
+        <div class="exercise-num">${String(i+1).padStart(2,'0')}</div>
+        <div class="exercise-info">
+          <div class="exercise-name">${ex.name}</div>
+          <div class="exercise-meta">${ex.station} · ${ex.sets}×${ex.reps}</div>
+        </div>
+        <div class="exercise-check">${sd.completed ? '✓' : ''}</div>
+      </div>
+      <div class="exercise-body" id="ex-body-${i}">
+        <div class="sets-header">
+          <div>SET</div><div>WEIGHT</div><div>REPS</div><div></div>
+        </div>
+        ${setsHtml}
+        <div class="exercise-note">${ex.note}</div>
+        ${ex.video ? `
+        <button class="video-toggle-btn" id="vid-btn-${i}" onclick="toggleVideo(${i}, '${encodeURIComponent(ex.video)}', '${ex.name.replace(/'/g,"\\'")}')">
+          <span class="vicon">▶</span> Watch Demo
+          <span class="vchev">▾</span>
+        </button>
+        <div class="video-panel" id="vid-panel-${i}"></div>
+        ` : ''}
+        <button class="mark-done-btn" onclick="markExerciseDone(${i})">
+          ${sd.completed ? '✓ COMPLETED' : 'MARK COMPLETE'}
+        </button>
+      </div>`;
+
+    list.appendChild(card);
+  });
+}
+
+function toggleExercise(i) {
+  const body = document.getElementById(`ex-body-${i}`);
+  body.classList.toggle('open');
+}
+
+function toggleVideo(i, encodedQuery, name) {
+  const btn = document.getElementById(`vid-btn-${i}`);
+  const panel = document.getElementById(`vid-panel-${i}`);
+  if (!btn || !panel) return;
+
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    panel.classList.remove('open');
+    btn.classList.remove('open');
+    btn.querySelector('.vchev').textContent = '▾';
+    panel.innerHTML = ''; // unload iframe to stop video
+    return;
+  }
+
+  btn.classList.add('open');
+  btn.querySelector('.vchev').textContent = '▾';
+  panel.classList.add('open');
+
+  const query = decodeURIComponent(encodedQuery);
+  const ytSearch = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+  // Use YouTube's nocookie embed with a search — fall back to search link
+  // We embed a YouTube search via the first result approach using youtubeeducation
+  panel.innerHTML = `
+    <div class="video-iframe-wrap">
+      <iframe
+        src="https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(query)}&rel=0&modestbranding=1"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        loading="lazy"
+        title="${name} demo">
+      </iframe>
+    </div>
+    <a class="video-yt-link" href="${ytSearch}" target="_blank" rel="noopener">
+      <span class="yt-badge">YT</span>
+      Search "${name}" on YouTube
+    </a>`;
+}
+
+function updateSet(exIdx, setIdx, field, value) {
+  sessionData[exIdx].sets[setIdx][field] = value;
+  saveSession();
+}
+
+function toggleSetDone(exIdx, setIdx) {
+  sessionData[exIdx].sets[setIdx].done = !sessionData[exIdx].sets[setIdx].done;
+  saveSession();
+  const btn = document.querySelector(`#set-${exIdx}-${setIdx} .set-done-btn`);
+  if (btn) {
+    btn.classList.toggle('done', sessionData[exIdx].sets[setIdx].done);
+    btn.textContent = sessionData[exIdx].sets[setIdx].done ? '✓' : '○';
+  }
+}
+
+function markExerciseDone(i) {
+  sessionData[i].completed = !sessionData[i].completed;
+  saveSession();
+  renderToday();
+  const type = getTodayWorkout();
+  const workout = WORKOUTS[type];
+  const completedCount = workout.exercises.filter((_,j) => sessionData[j]?.completed).length;
+  if (completedCount === workout.exercises.length) {
+    showToast('🏆 WORKOUT COMPLETE!');
+    markSessionComplete();
+  } else {
+    showToast(sessionData[i].completed ? '✓ EXERCISE DONE' : 'REOPENED');
+  }
+}
+
+function saveSession() {
+  const stored = getStorage();
+  const viewedKey = getViewedKey();
+  stored[viewedKey] = stored[viewedKey] || {};
+  Object.assign(stored[viewedKey], sessionData);
+  saveStorage(stored);
+}
+
+function markSessionComplete() {
+  const stored = getStorage();
+  const viewedKey = getViewedKey();
+  if (!stored.sessions) stored.sessions = [];
+  const type = getViewedWorkout();
+  if (!stored.sessions.find(s => s.date === viewedKey)) {
+    stored.sessions.push({
+      date: viewedKey,
+      type: type,
+      duration: sessionStart ? Math.round((Date.now() - sessionStart) / 60000) : null,
+      exercises: WORKOUTS[type].exercises.map((ex, i) => ({
+        name: ex.name,
+        sets: sessionData[i]?.sets || []
+      }))
+    });
+  }
+  saveStorage(stored);
+}
+
+// ─── TIMER ─────────────────────────────────────────────────────────────────────
+function toggleSession() {
+  const type = getViewedWorkout();
+  if (type === 'rest' || type === 'pt') return;
+  sessionActive = !sessionActive;
+  const btn = document.getElementById('startBtn');
+  const timer = document.getElementById('timerDisplay');
+  if (sessionActive) {
+    sessionStart = sessionStart || Date.now();
+    btn.textContent = 'PAUSE';
+    timer.classList.add('running');
+    timerInterval = setInterval(() => {
+      timer.textContent = formatTime(Date.now() - sessionStart);
+    }, 1000);
+  } else {
+    clearInterval(timerInterval);
+    btn.textContent = 'RESUME';
+    timer.classList.remove('running');
+  }
+}
+
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${String(h).padStart(2,'0')}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+// ─── HISTORY ───────────────────────────────────────────────────────────────────
+function renderHistory() {
+  const stored = getStorage();
+  const sessions = (stored.sessions || []).slice().reverse();
+  const list = document.getElementById('historyList');
+  if (!sessions.length) {
+    list.innerHTML = `<div class="no-history"><div>EMPTY</div>Complete your first session to see it here.</div>`;
+    return;
+  }
+  list.innerHTML = sessions.map(s => {
+    const w = WORKOUTS[s.type];
+    const exerciseSummary = s.exercises.map(ex => {
+      const doneSets = ex.sets.filter(st => st.done).length;
+      const weights = ex.sets.filter(st => st.weight).map(st => st.weight + 'lb');
+      return `<strong>${ex.name}</strong> — ${doneSets}/${ex.sets.length} sets${weights.length ? ' @ ' + weights.join(', ') : ''}`;
+    }).join('<br>');
+    const dateObj = new Date(s.date + 'T12:00:00');
+    return `
+      <div class="history-entry">
+        <div class="history-entry-header">
+          <div>
+            <div class="history-day-label ${s.type}">${w.label}</div>
+            <div class="exercise-meta">${w.sub}</div>
+          </div>
+          <div class="history-date">
+            ${dateObj.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}<br>
+            ${s.duration ? s.duration + ' MIN' : ''}
+          </div>
+        </div>
+        <div class="history-exercises">${exerciseSummary}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── STATS ─────────────────────────────────────────────────────────────────────
+function renderStats() {
+  const stored = getStorage();
+  const sessions = stored.sessions || [];
+  const total = sessions.length;
+  const pushCount = sessions.filter(s => s.type === 'push').length;
+  const pullCount = sessions.filter(s => s.type === 'pull').length;
+  const legsCount = sessions.filter(s => s.type === 'legs').length;
+  const ptCount = sessions.filter(s => s.type === 'pt').length;
+  const avgDur = sessions.filter(s => s.duration).reduce((a, s, _, arr) => a + s.duration / arr.length, 0);
+
+  // Streak
+  let streak = 0;
+  const today = getTodayKey();
+  const sessionDates = new Set(sessions.map(s => s.date));
+  let check = new Date();
+  while (true) {
+    const key = check.toISOString().split('T')[0];
+    if (sessionDates.has(key)) { streak++; check.setDate(check.getDate()-1); }
+    else break;
+  }
+
+  const dots = Array.from({length:14}, (_,i) => {
+    const d = new Date(); d.setDate(d.getDate() - (13-i));
+    const key = d.toISOString().split('T')[0];
+    const session = sessions.find(s => s.date === key);
+    return session ? `<div class="streak-dot ${session.type}" title="${key}"></div>` : `<div class="streak-dot"></div>`;
+  }).join('');
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val">${total}</div>
+      <div class="stat-label">SESSIONS TOTAL</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${streak}</div>
+      <div class="stat-label">CURRENT STREAK</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${avgDur ? Math.round(avgDur) + 'm' : '--'}</div>
+      <div class="stat-label">AVG DURATION</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--push)">${pushCount}</div>
+      <div class="stat-label">PUSH DAYS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--pull)">${pullCount}</div>
+      <div class="stat-label">PULL DAYS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--legs)">${legsCount}</div>
+      <div class="stat-label">LEGS DAYS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--pt)">${ptCount}</div>
+      <div class="stat-label">PT + WALK DAYS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" style="margin-bottom:8px">LAST 14 DAYS</div>
+      <div class="streak-bar">${dots}</div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">
+        <span><span style="color:var(--push)">■</span> PUSH</span>
+        <span><span style="color:var(--pull)">■</span> PULL</span>
+        <span><span style="color:var(--legs)">■</span> LEGS</span>
+        <span><span style="color:var(--pt)">■</span> PT</span>
+      </div>
+    </div>`;
+}
+
+// ─── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── RESET ─────────────────────────────────────────────────────────────────────
+function clearAllData() {
+  if (confirm('Reset ALL workout data? This cannot be undone.')) {
+    localStorage.removeItem('ironlog');
+    sessionData = {};
+    sessionActive = false;
+    sessionStart = null;
+    clearInterval(timerInterval);
+    renderToday();
+    showToast('DATA CLEARED');
+  }
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────────
+updateHeader();
+renderToday();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .then(r => console.log("SW registered:", r.scope))
+      .catch(e => console.log("SW failed:", e));
+  });
+}
+</script>
+</body>
+</html>
