@@ -852,6 +852,63 @@
     font-size: 11px;
     color: var(--muted);
   }
+
+  /* EXERCISE EDITOR */
+  .edit-exercises-btn {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 4px 16px 0;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .edit-exercises-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .editor-row {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .editor-row-top { display: flex; gap: 8px; align-items: flex-start; }
+  .editor-row-top .modal-input { margin-bottom: 8px; }
+  .editor-row-grid { display: grid; grid-template-columns: 70px 90px 1fr; gap: 8px; }
+  .editor-row-grid .modal-input { margin-bottom: 0; }
+  .editor-del {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .editor-del:hover { border-color: var(--accent2); color: var(--accent2); }
+  .editor-add-btn {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 12px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .editor-add-btn:hover { border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -932,6 +989,23 @@
     </div>
     <div id="disconnectRow" style="display:none;margin-top:16px;text-align:center">
       <button onclick="disconnectSync()" style="background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;text-decoration:underline">DISCONNECT SYNC</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXERCISE EDITOR MODAL -->
+<div class="modal-overlay" id="exerciseModal" onclick="if(event.target===this)closeExerciseEditor()">
+  <div class="modal">
+    <div class="modal-title" id="exerciseModalTitle">EDIT EXERCISES</div>
+    <div class="modal-sub">CUSTOMIZE THIS DAY'S EXERCISE LIST</div>
+    <div id="editorRows"></div>
+    <button class="editor-add-btn" onclick="editorAdd()">+ ADD EXERCISE</button>
+    <div class="modal-btns">
+      <button class="btn-save" onclick="saveExerciseEditor()">SAVE</button>
+      <button class="btn-cancel" onclick="closeExerciseEditor()">CANCEL</button>
+    </div>
+    <div style="margin-top:16px;text-align:center">
+      <button onclick="resetExerciseEditor()" style="background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;text-decoration:underline">RESET TO DEFAULT LIST</button>
     </div>
   </div>
 </div>
@@ -1023,6 +1097,34 @@ function getDateKey(d) {
 
 function getTodayKey() { return getDateKey(new Date()); }
 function getViewedKey() { return getDateKey(getViewedDate()); }
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Returns the user-customized exercise list for a workout type, or the default.
+function getExercises(type) {
+  const stored = getStorage();
+  if (stored.custom && stored.custom[type]) return stored.custom[type];
+  return WORKOUTS[type]?.exercises || [];
+}
+
+// Builds the session state for one exercise, preferring name matches over index
+// matches so customized lists don't pick up another exercise's data.
+function buildExerciseState(ex, i, daySaved, prevSession) {
+  const savedVals = Object.entries(daySaved).filter(([k]) => !isNaN(k)).map(([,v]) => v);
+  const saved = savedVals.find(v => v.name === ex.name) || ((daySaved[i] && !daySaved[i].name) ? daySaved[i] : null);
+  if (saved) { saved.name = ex.name; return saved; }
+  let prev = null;
+  if (prevSession) {
+    const prevVals = Object.entries(prevSession.data).filter(([k]) => !isNaN(k)).map(([,v]) => v);
+    prev = prevVals.find(v => v.name === ex.name) || ((prevSession.data[i] && !prevSession.data[i].name) ? prevSession.data[i] : null);
+  }
+  if (prev) {
+    return { name: ex.name, sets: prev.sets.map(s => ({weight: s.weight, reps: s.reps, done: false})), completed: false };
+  }
+  return { name: ex.name, sets: Array.from({length: ex.sets}, () => ({weight: '', reps: '', done: false})), completed: false };
+}
 
 // ─── TAB NAVIGATION ────────────────────────────────────────────────────────────
 function shiftDay(delta) {
@@ -1127,6 +1229,7 @@ function renderToday() {
   }
 
   const workout = WORKOUTS[type];
+  const exercises = getExercises(type);
   const stored = getStorage();
   const viewedKey = getViewedKey();
   const daySaved = stored[viewedKey] || {};
@@ -1135,24 +1238,12 @@ function renderToday() {
   const prevSession = !hasTodayData ? getMostRecentPreviousSession(type, getViewedDate(), stored) : null;
 
   sessionData = {};
-  workout.exercises.forEach((ex, i) => {
-    if (daySaved[i]) {
-      sessionData[i] = daySaved[i];
-    } else if (prevSession && prevSession.data[i]) {
-      sessionData[i] = {
-        sets: prevSession.data[i].sets.map(s => ({weight: s.weight, reps: s.reps, done: false})),
-        completed: false
-      };
-    } else {
-      sessionData[i] = {
-        sets: Array.from({length: ex.sets}, () => ({weight: '', reps: '', done: false})),
-        completed: false
-      };
-    }
+  exercises.forEach((ex, i) => {
+    sessionData[i] = buildExerciseState(ex, i, daySaved, prevSession);
   });
 
-  const completedCount = workout.exercises.filter((_,i) => sessionData[i]?.completed).length;
-  const pct = Math.round((completedCount / workout.exercises.length) * 100);
+  const completedCount = exercises.filter((_,i) => sessionData[i]?.completed).length;
+  const pct = exercises.length ? Math.round((completedCount / exercises.length) * 100) : 0;
   const futureNote = isFuture ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--pt);padding:8px 20px;background:rgba(199,125,255,0.06);border-bottom:1px solid var(--border)">👁 PREVIEW MODE — Viewing future session</div>` : '';
   const prevNote = prevSession ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:8px 20px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border)">↩ WEIGHTS FROM LAST SESSION · ${new Date(prevSession.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>` : '';
 
@@ -1172,11 +1263,12 @@ function renderToday() {
     </div>
     <div class="progress-label">
       <span>PROGRESS</span>
-      <span>${completedCount}/${workout.exercises.length} EXERCISES <span>· ${pct}%</span></span>
+      <span>${completedCount}/${exercises.length} EXERCISES <span>· ${pct}%</span></span>
     </div>
-    <div class="exercises-list" id="exercisesList"></div>`;
+    <div class="exercises-list" id="exercisesList"></div>
+    <button class="edit-exercises-btn" onclick="openExerciseEditor()">✎ EDIT EXERCISES</button>`;
 
-  renderExercises(workout);
+  renderExercises(exercises);
 }
 
 function renderPTDay(isToday, isFuture) {
@@ -1185,8 +1277,21 @@ function renderPTDay(isToday, isFuture) {
   const viewedKey = getViewedKey();
   const ptSaved = stored[viewedKey + '_pt'] || { pt: false, walk: false, notes: '' };
   const w = WORKOUTS.pt;
+  const exercises = getExercises('pt');
+  const daySaved = stored[viewedKey] || {};
+  const hasTodayData = Object.keys(daySaved).some(k => !isNaN(k));
+  const prevSession = (exercises.length && !hasTodayData) ? getMostRecentPreviousSession('pt', getViewedDate(), stored) : null;
+
+  sessionData = {};
+  exercises.forEach((ex, i) => {
+    sessionData[i] = buildExerciseState(ex, i, daySaved, prevSession);
+  });
+
   const bothDone = ptSaved.pt && ptSaved.walk;
-  const donePct = [ptSaved.pt, ptSaved.walk].filter(Boolean).length * 50;
+  const exDone = exercises.filter((_,i) => sessionData[i]?.completed).length;
+  const totalItems = 2 + exercises.length;
+  const doneItems = [ptSaved.pt, ptSaved.walk].filter(Boolean).length + exDone;
+  const donePct = Math.round((doneItems / totalItems) * 100);
   const futureNote = isFuture ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--pt);padding:8px 20px;background:rgba(199,125,255,0.06);border-bottom:1px solid var(--border)">👁 PREVIEW MODE — Viewing future session</div>` : '';
 
   container.innerHTML = `
@@ -1200,7 +1305,7 @@ function renderPTDay(isToday, isFuture) {
     </div>
     <div class="progress-label">
       <span>PROGRESS</span>
-      <span>${[ptSaved.pt, ptSaved.walk].filter(Boolean).length}/2 ACTIVITIES · ${donePct}%</span>
+      <span>${doneItems}/${totalItems} ${exercises.length ? 'ITEMS' : 'ACTIVITIES'} · ${donePct}%</span>
     </div>
     <div class="pt-track-card">
       ${w.activities.map(a => `
@@ -1218,7 +1323,16 @@ function renderPTDay(isToday, isFuture) {
           ${!isToday ? 'readonly' : ''}
           onchange="savePTNotes(this.value)">${ptSaved.notes || ''}</textarea>
       </div>
-    </div>`;
+    </div>
+    ${exercises.length ? `
+    <div class="progress-label" style="padding-top:4px">
+      <span>EXTRA EXERCISES</span>
+      <span>${exDone}/${exercises.length} DONE</span>
+    </div>
+    <div class="exercises-list" id="exercisesList"></div>` : ''}
+    <button class="edit-exercises-btn" onclick="openExerciseEditor()">✎ ${exercises.length ? 'EDIT' : 'ADD'} EXERCISES</button>`;
+
+  if (exercises.length) renderExercises(exercises);
 
   if (bothDone && isToday) {
     const stored2 = getStorage();
@@ -1253,11 +1367,11 @@ function savePTNotes(val) {
   saveStorage(stored);
 }
 
-function renderExercises(workout) {
+function renderExercises(exercises) {
   const list = document.getElementById('exercisesList');
   if (!list) return;
   list.innerHTML = '';
-  workout.exercises.forEach((ex, i) => {
+  exercises.forEach((ex, i) => {
     const sd = sessionData[i];
     const card = document.createElement('div');
     card.className = `exercise-card ${sd.completed ? 'completed' : ''}`;
@@ -1279,8 +1393,8 @@ function renderExercises(workout) {
       <div class="exercise-header" onclick="toggleExercise(${i})">
         <div class="exercise-num">${String(i+1).padStart(2,'0')}</div>
         <div class="exercise-info">
-          <div class="exercise-name">${ex.name}</div>
-          <div class="exercise-meta">${ex.station} · ${ex.sets}×${ex.reps}</div>
+          <div class="exercise-name">${esc(ex.name)}</div>
+          <div class="exercise-meta">${ex.station ? esc(ex.station) + ' · ' : ''}${ex.sets}×${esc(ex.reps)}</div>
         </div>
         <div class="exercise-check">${sd.completed ? '✓' : ''}</div>
       </div>
@@ -1289,9 +1403,9 @@ function renderExercises(workout) {
           <div>SET</div><div>WEIGHT</div><div>REPS</div><div></div>
         </div>
         ${setsHtml}
-        <div class="exercise-note">${ex.note}</div>
+        ${ex.note ? `<div class="exercise-note">${esc(ex.note)}</div>` : ''}
         ${ex.video ? `
-        <button class="video-toggle-btn" id="vid-btn-${i}" onclick="toggleVideo(${i}, '${encodeURIComponent(ex.video)}', '${ex.name.replace(/'/g,"\\'")}')">
+        <button class="video-toggle-btn" id="vid-btn-${i}" onclick="toggleVideo(${i}, '${encodeURIComponent(ex.video)}', '${esc(ex.name).replace(/'/g,"\\'")}')">
           <span class="vicon">▶</span> Watch Demo
           <span class="vchev">▾</span>
         </button>
@@ -1365,25 +1479,28 @@ function toggleSetDone(exIdx, setIdx) {
 }
 
 function markExerciseDone(i) {
-  sessionData[i].completed = !sessionData[i].completed;
+  const wasCompleted = sessionData[i].completed;
+  sessionData[i].completed = !wasCompleted;
   saveSession();
   renderToday();
   const type = getViewedWorkout();
-  const workout = WORKOUTS[type];
-  const completedCount = workout.exercises.filter((_,j) => sessionData[j]?.completed).length;
-  if (completedCount === workout.exercises.length) {
+  const exercises = getExercises(type);
+  const completedCount = exercises.filter((_,j) => sessionData[j]?.completed).length;
+  if (type !== 'pt' && completedCount === exercises.length) {
     showToast('🏆 WORKOUT COMPLETE!');
     markSessionComplete();
   } else {
-    showToast(sessionData[i].completed ? '✓ EXERCISE DONE' : 'REOPENED');
+    showToast(!wasCompleted ? '✓ EXERCISE DONE' : 'REOPENED');
   }
 }
 
 function saveSession() {
   const stored = getStorage();
   const viewedKey = getViewedKey();
-  stored[viewedKey] = stored[viewedKey] || {};
-  Object.assign(stored[viewedKey], sessionData);
+  const day = stored[viewedKey] || {};
+  Object.keys(day).forEach(k => { if (!isNaN(k)) delete day[k]; });
+  Object.assign(day, sessionData);
+  stored[viewedKey] = day;
   saveStorage(stored);
 }
 
@@ -1397,7 +1514,7 @@ function markSessionComplete() {
       date: viewedKey,
       type: type,
       duration: sessionStart ? Math.round((Date.now() - sessionStart) / 60000) : null,
-      exercises: WORKOUTS[type].exercises.map((ex, i) => ({
+      exercises: getExercises(type).map((ex, i) => ({
         name: ex.name,
         sets: sessionData[i]?.sets || []
       }))
@@ -1558,6 +1675,99 @@ function clearAllData() {
     renderToday();
     showToast('DATA CLEARED');
   }
+}
+
+// ─── EXERCISE EDITOR ───────────────────────────────────────────────────────────
+let editorType = null;
+let editorList = [];
+
+function openExerciseEditor() {
+  const type = getViewedWorkout();
+  if (type === 'rest') return;
+  editorType = type;
+  editorList = getExercises(type).map(ex => Object.assign({}, ex));
+  document.getElementById('exerciseModalTitle').textContent = 'EDIT EXERCISES — ' + WORKOUTS[type].label;
+  renderEditorRows();
+  document.getElementById('exerciseModal').classList.add('open');
+}
+
+function closeExerciseEditor() {
+  document.getElementById('exerciseModal').classList.remove('open');
+}
+
+function renderEditorRows() {
+  const wrap = document.getElementById('editorRows');
+  if (!editorList.length) {
+    wrap.innerHTML = `<div class="modal-note" style="text-align:center">No exercises yet — add one below.</div>`;
+    return;
+  }
+  wrap.innerHTML = editorList.map((ex, i) => `
+    <div class="editor-row">
+      <div class="editor-row-top">
+        <input class="modal-input" value="${esc(ex.name)}" placeholder="Exercise name (e.g. Pushups)" oninput="editorUpdate(${i},'name',this.value)">
+        <button class="editor-del" onclick="editorRemove(${i})" title="Remove">✕</button>
+      </div>
+      <div class="editor-row-grid">
+        <div>
+          <div class="modal-label">SETS</div>
+          <input class="modal-input" type="number" min="1" max="10" inputmode="numeric" value="${esc(ex.sets)}" oninput="editorUpdate(${i},'sets',this.value)">
+        </div>
+        <div>
+          <div class="modal-label">REPS</div>
+          <input class="modal-input" value="${esc(ex.reps)}" placeholder="10–12" oninput="editorUpdate(${i},'reps',this.value)">
+        </div>
+        <div>
+          <div class="modal-label">STATION / EQUIPMENT</div>
+          <input class="modal-input" value="${esc(ex.station || '')}" placeholder="Bodyweight" oninput="editorUpdate(${i},'station',this.value)">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function editorUpdate(i, field, value) {
+  if (editorList[i]) editorList[i][field] = value;
+}
+
+function editorRemove(i) {
+  editorList.splice(i, 1);
+  renderEditorRows();
+}
+
+function editorAdd() {
+  editorList.push({ name: '', station: '', sets: 3, reps: '10', note: '', video: '' });
+  renderEditorRows();
+  const rows = document.querySelectorAll('#editorRows .editor-row-top .modal-input');
+  rows[rows.length - 1]?.focus();
+}
+
+function saveExerciseEditor() {
+  const list = editorList
+    .map(ex => Object.assign({}, ex, { name: String(ex.name || '').trim() }))
+    .filter(ex => ex.name);
+  if (!list.length && editorType !== 'pt') { showToast('ADD AT LEAST ONE EXERCISE'); return; }
+  list.forEach(ex => {
+    ex.sets = Math.min(10, Math.max(1, parseInt(ex.sets) || 3));
+    ex.reps = String(ex.reps || '').trim() || '10';
+    ex.station = String(ex.station || '').trim();
+    if (!ex.video) ex.video = ex.name.toLowerCase() + ' proper form tutorial';
+  });
+  const stored = getStorage();
+  stored.custom = stored.custom || {};
+  stored.custom[editorType] = list;
+  saveStorage(stored);
+  closeExerciseEditor();
+  renderToday();
+  showToast('EXERCISES UPDATED');
+}
+
+function resetExerciseEditor() {
+  if (!confirm('Reset this day back to the default exercise list?')) return;
+  const stored = getStorage();
+  if (stored.custom) delete stored.custom[editorType];
+  saveStorage(stored);
+  closeExerciseEditor();
+  renderToday();
+  showToast('RESET TO DEFAULT');
 }
 
 // ─── GITHUB GIST SYNC ──────────────────────────────────────────────────────────
