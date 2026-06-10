@@ -923,6 +923,18 @@ function updateHeader() {
 }
 
 // ─── RENDER TODAY ─────────────────────────────────────────────────────────────
+function getMostRecentPreviousSession(type, beforeDate, stored) {
+  for (let i = 1; i <= 90; i++) {
+    const d = new Date(beforeDate);
+    d.setDate(d.getDate() - i);
+    const key = getDateKey(d);
+    if (stored[key] && SCHEDULE[d.getDay()] === type && Object.keys(stored[key]).some(k => !isNaN(k))) {
+      return { date: key, data: stored[key] };
+    }
+  }
+  return null;
+}
+
 function renderToday() {
   const type = getViewedWorkout();
   const container = document.getElementById('todayContent');
@@ -959,11 +971,19 @@ function renderToday() {
   const stored = getStorage();
   const viewedKey = getViewedKey();
   const daySaved = stored[viewedKey] || {};
+  const hasTodayData = Object.keys(daySaved).some(k => !isNaN(k));
+
+  const prevSession = !hasTodayData ? getMostRecentPreviousSession(type, getViewedDate(), stored) : null;
 
   sessionData = {};
   workout.exercises.forEach((ex, i) => {
     if (daySaved[i]) {
       sessionData[i] = daySaved[i];
+    } else if (prevSession && prevSession.data[i]) {
+      sessionData[i] = {
+        sets: prevSession.data[i].sets.map(s => ({weight: s.weight, reps: s.reps, done: false})),
+        completed: false
+      };
     } else {
       sessionData[i] = {
         sets: Array.from({length: ex.sets}, () => ({weight: '', reps: '', done: false})),
@@ -975,9 +995,11 @@ function renderToday() {
   const completedCount = workout.exercises.filter((_,i) => sessionData[i]?.completed).length;
   const pct = Math.round((completedCount / workout.exercises.length) * 100);
   const futureNote = isFuture ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--pt);padding:8px 20px;background:rgba(199,125,255,0.06);border-bottom:1px solid var(--border)">👁 PREVIEW MODE — Viewing future session</div>` : '';
+  const prevNote = prevSession ? `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:8px 20px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border)">↩ WEIGHTS FROM LAST SESSION · ${new Date(prevSession.date + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>` : '';
 
   container.innerHTML = `
     ${futureNote}
+    ${prevNote}
     <div class="today-hero">
       <div class="workout-type-label ${type}">${workout.label}</div>
       <div class="workout-subtitle">${workout.sub}</div>
@@ -1187,7 +1209,7 @@ function markExerciseDone(i) {
   sessionData[i].completed = !sessionData[i].completed;
   saveSession();
   renderToday();
-  const type = getTodayWorkout();
+  const type = getViewedWorkout();
   const workout = WORKOUTS[type];
   const completedCount = workout.exercises.filter((_,j) => sessionData[j]?.completed).length;
   if (completedCount === workout.exercises.length) {
