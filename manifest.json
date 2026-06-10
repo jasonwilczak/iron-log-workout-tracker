@@ -2,7 +2,7 @@
   "name": "Iron Log — Marcy 150",
   "short_name": "Iron Log",
   "description": "MWF workout tracker for the Marcy 150lb Stack Home Gym",
-  "start_url": "/",
+  "start_url": "/iron-log-workout-tracker",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f0f0f",
